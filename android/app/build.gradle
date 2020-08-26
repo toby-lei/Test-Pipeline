@@ -121,20 +121,6 @@ def jscFlavor = 'org.webkit:android-jsc:+'
 def enableHermes = project.ext.react.get("enableHermes", false);
 
 android {
-    signingConfigs {
-        release {
-            storeFile file('/Users/toby/Documents/RN/AndoridKeyStore.keystore')
-            storePassword 'A123456a'
-            keyAlias = 'key1'
-            keyPassword 'A123456a'
-        }
-        debug {
-            storeFile file('/Users/toby/Documents/RN/AndoridKeyStore.keystore')
-            storePassword 'A123456a'
-            keyAlias = 'key1'
-            keyPassword 'A123456a'
-        }
-    }
     compileSdkVersion rootProject.ext.compileSdkVersion
 
     compileOptions {
