@@ -1,0 +1,83 @@
+# Android
+# Build your Android project with Gradle.
+# Add steps that test, sign, and distribute the APK, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/android
+
+trigger:
+- master
+
+pool:
+  vmImage: "macos-10.14"
+
+name: $(date:yyyy).$(Month)$(rev:.r)
+
+variables:
+- group: my-variable-group
+
+steps:
+
+# - script: npm config set registry http://registry.npm.taobao.org/
+- script: npm install
+
+- task: Gradle@2
+  inputs:
+    gradleWrapperFile: 'android/gradlew'
+    workingDirectory: 'android/'
+    options: '-PversionName=$(Build.BuildNumber) -PversionCode=$(Build.BuildId)'
+    tasks: 'assembleRelease'
+    publishJUnitResults: false
+    javaHomeOption: 'JDKVersion'
+    gradleOptions: '-Xmx3072m'
+
+- task: AndroidSigning@3
+  inputs:
+    apkFiles: '**/*.apk'
+    apksignerKeystoreFile: 'AndoridKeyStore.keystore'
+    apksignerKeystorePassword: '$(KeyStorePassword)'
+    apksignerKeystoreAlias: '$(KeyAlias)'
+    apksignerKeyPassword: '$(KeyPassword)'
+    zipalign: false
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: 'android/app/build/outputs/apk/release'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+
+- task: CocoaPods@0
+  displayName: 'pod install'
+  inputs:
+    workingDirectory: ios
+
+- task: InstallAppleCertificate@2
+  inputs:
+    certSecureFile: 'iphone AIA Information.p12'
+    certPwd: '$(P12password)'
+    keychain: 'temp'
+
+- task: InstallAppleProvisioningProfile@1
+  displayName: 'Install an Apple provisioning profile'
+  inputs:
+    provProfileSecureFile: '6a444a81-9f47-46bf-95bf-cb710724940a'
+
+- task: Xcode@5
+  displayName: 'Xcode build'
+  inputs:
+    configuration: Release
+    sdk: iphoneos
+    xcWorkspacePath: ios/Test.xcworkspace
+    scheme: Test
+    packageApp: true
+    exportPath: output/
+    signingOption: manual
+    signingIdentity: '$(APPLE_CERTIFICATE_SIGNING_IDENTITY)'
+    provisioningProfileUuid: '$(APPLE_PROV_PROFILE_UUID)'
+
+- task: CopyFiles@2
+  displayName: 'Copy Files to: $(build.artifactStagingDirectory)'
+  inputs:
+    Contents: '**/*.ipa'
+    TargetFolder: '$(build.artifactStagingDirectory)'
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: drop'
